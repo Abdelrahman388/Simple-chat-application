@@ -26,6 +26,19 @@
             height: 50%;
             overflow-y: auto;
         }
+
+        #typingIndicator {
+            font-style: italic;
+            color: #888;
+            margin: 0.5rem 0;
+        }
+
+        /* Read receipt indicator styling */
+        .read-receipt {
+            font-size: 0.75rem;
+            color: green;
+            margin-left: 0.5rem;
+        }
     </style>
 </head>
 
@@ -73,9 +86,8 @@
                 <div class="p-3 border-bottom">
                     <h5 id="chatWith">Select a friend to chat</h5>
                 </div>
-                <div class="p-3 flex-grow-1" id="chatBox">
-
-                </div>
+                <div id="typingIndicator" class="px-3"></div>
+                <div class="p-3 flex-grow-1" id="chatBox"></div>
                 <div class="p-3 border-top">
                     <div class="input-group">
                         <input type="text" class="form-control" id="chatMessageInput" placeholder="Type your message">
@@ -91,7 +103,7 @@
         const socket = io.connect('http://' + document.domain + ':' + location.port);
 
         let currentFriendId = null;
-        let currentFriendUserName= null
+        let currentFriendUserName = null
 
         // Listen for incoming messages from WebSocket
         socket.on('receive_message', function (data) {
@@ -106,13 +118,13 @@
             }
         });
 
-        
+
 
         // Add Friend Request Functionality
         document.getElementById('addFriendBtn').addEventListener('click', function () {
             const friendName = document.getElementById('newFriendInput').value;
             if (!friendName.trim()) return;
-  
+
             fetch('/send_friend_request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -139,6 +151,7 @@
             li.addEventListener('click', function () {
                 currentFriendId = friendId;
                 document.getElementById('chatWith').textContent = "Chat with " + friendName;
+                socket.emit('join', { room: "chat_" + friendId });
                 loadChat(friendId);
             });
             document.getElementById('friendsList').appendChild(li);
@@ -150,7 +163,7 @@
                 .then(response => response.json())
                 .then(data => {
                     const list = document.getElementById('friendRequestsList');
-                    list.innerHTML = ''; 
+                    list.innerHTML = '';
                     data.forEach(request => {
                         const li = document.createElement('li');
                         li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
@@ -170,8 +183,8 @@
                                 .then(response => response.json())
                                 .then(data => {
                                     alert(data.message);
-                                    loadFriendRequests();  
-                                    loadFriends();       
+                                    loadFriendRequests();
+                                    loadFriends();
                                 });
                         };
 
@@ -187,7 +200,7 @@
                                 .then(response => response.json())
                                 .then(data => {
                                     alert(data.message);
-                                    loadFriendRequests(); 
+                                    loadFriendRequests();
                                 });
                         };
 
@@ -206,7 +219,7 @@
                 .then(response => response.json())
                 .then(data => {
                     const list = document.getElementById('friendsList');
-                    list.innerHTML = ''; 
+                    list.innerHTML = '';
                     data.forEach(friend => {
                         const li = document.createElement('li');
                         li.classList.add('list-group-item', 'list-group-item-action');
@@ -253,7 +266,7 @@
             const lastFriendName = localStorage.getItem("lastFriendName");
             if (lastFriendId) {
                 currentFriendId = lastFriendId;
-   
+
                 document.getElementById('chatWith').textContent = "Chat with " + lastFriendName;
                 socket.emit('join', { room: "chat_" + lastFriendId });
                 loadChat(lastFriendId);
@@ -266,7 +279,7 @@
         document.getElementById('sendMessageBtn').addEventListener('click', function () {
             const message = document.getElementById('chatMessageInput').value;
             if (!message.trim() || !currentFriendId) return;
- 
+
             socket.emit('send_message', { receiver_id: currentFriendId, message: message });
 
             const chatBox = document.getElementById('chatBox');
@@ -279,8 +292,33 @@
         });
 
 
-        setInterval(loadFriends,5000);
-        setInterval(loadFriendRequests,5000);
+
+        // Listen for typing events
+        socket.on('display_typing', function (data) {
+            document.getElementById('typingIndicator').textContent = data.username + " is typing...";
+        });
+        socket.on('hide_typing', function (data) {
+            document.getElementById('typingIndicator').textContent = "";
+        });
+
+ 
+        let typingTimer;
+        const typingInterval = 1000;
+        document.getElementById('chatMessageInput').addEventListener('input', function () {
+            if (currentFriendId) {
+                console.log("Current friend ID:", currentFriendId);
+                socket.emit('typing', { room: "chat_" + currentFriendId, username:localStorage.getItem('username') });
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    socket.emit('stop_typing', { room: "chat_" + currentFriendId });
+                }, typingInterval);
+            }
+        });
+
+        console.log("Socket connected:", socket.connected);
+        console.log("Username stored in localStorage:", localStorage.getItem('username'));
+        setInterval(loadFriends, 5000);
+        setInterval(loadFriendRequests, 5000);
     </script>
 </body>
 

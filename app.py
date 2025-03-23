@@ -69,6 +69,23 @@ def handle_message(data):
     # Emit message to the receiver's personal room.
     # emit('receive_message', {'sender': sender_id, 'content': message_text}, room=f"chat_{receiver_id}")
 
+@socketio.on('typing')
+def handle_typing(data):
+    # data should include the room and the username of the user who is typing
+    print("Typing event received:", data) 
+    room = data.get('room')
+    username = data.get('username')
+    if room and username:
+        emit('display_typing', {'username': username}, room=room)
+
+@socketio.on('stop_typing')
+def handle_stop_typing(data):
+    room = data.get('room')
+    if room:
+        emit('hide_typing', {}, room=room)
+
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))  
@@ -78,4 +95,8 @@ from routes import *
 if __name__ == '__main__':
     # socketio.run(app, debug=True)
     socketio.run(app, debug=True, ssl_context=('path/to/cert.pem', 'path/to/key.pem'))
+
+
+
+
 

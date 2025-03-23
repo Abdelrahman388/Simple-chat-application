@@ -18,6 +18,7 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     .then(data => {
       if (data.access_token) {
         localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('username',username)
         window.location.href = '/chat';
       } else {
         alert("Login failed");
