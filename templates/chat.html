@@ -278,9 +278,9 @@
             document.getElementById('chatMessageInput').value = "";
         });
 
-        // On page load, refresh friend list and friend requests
-        loadFriends();
-        loadFriendRequests();
+
+        setInterval(loadFriends,5000);
+        setInterval(loadFriendRequests,5000);
     </script>
 </body>
 
