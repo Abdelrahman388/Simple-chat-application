@@ -1,9 +1,13 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-
+from cryptography.fernet import Fernet
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask import session
+import os
+
+ENCRYPTION_KEY = b'wc-AH8uTrv7QpBvIgMK_PFlYJcBBmJbXmRvO7LnjxgM='
+cipher_suite = Fernet(ENCRYPTION_KEY)
 
 # Initialize Flask-SocketIO
 app = Flask(__name__)
@@ -59,8 +63,10 @@ def handle_message(data):
     receiver_id = data['receiver_id']
     message_text = data['message']
     sender_name=User.query.get(sender_id).username
-    
-    new_message = Message(sender_id=sender_id, receiver_id=receiver_id, content=message_text)
+    encrypted = cipher_suite.encrypt(message_text.encode('utf-8'))
+    print(f"decrypted : {message_text}")
+    print(f"encrypted : {encrypted}")
+    new_message = Message(sender_id=sender_id, receiver_id=receiver_id, content=encrypted)
     db.session.add(new_message)
     db.session.commit()
 
@@ -72,7 +78,7 @@ def handle_message(data):
 @socketio.on('typing')
 def handle_typing(data):
     # data should include the room and the username of the user who is typing
-    print("Typing event received:", data) 
+    #print("Typing event received:", data) 
     room = data.get('room')
     username = data.get('username')
     if room and username:

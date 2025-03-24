@@ -26,6 +26,6 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     })
     .catch(error => {
       console.error('Error:', error);
-      alert(error.message);
+      alert("Invalid username or password");
     });
   });

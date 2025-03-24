@@ -152,6 +152,11 @@
                 currentFriendId = friendId;
                 document.getElementById('chatWith').textContent = "Chat with " + friendName;
                 socket.emit('join', { room: "chat_" + friendId });
+                if (localStorage.getItem("lastFriendId")) {
+                    socket.emit('leave', { room: "chat_" + localStorage.getItem("lastFriendId") })
+                }
+                localStorage.setItem("lastFriendId", friend.id);
+                localStorage.setItem("lastFriendName", friend.username);
                 loadChat(friendId);
             });
             document.getElementById('friendsList').appendChild(li);
@@ -226,11 +231,15 @@
                         li.textContent = friend.username;
                         li.dataset.friendId = friend.id;
                         li.addEventListener('click', function () {
-                            localStorage.setItem("lastFriendId", friend.id);
-                            localStorage.setItem("lastFriendName", friend.username);
+
                             currentFriendId = friend.id;
                             document.getElementById('chatWith').textContent = "Chat with " + friend.username;
                             socket.emit('join', { room: "chat_" + friend.id });
+                            if (localStorage.getItem("lastFriendId")) {
+                                socket.emit('leave', { room: "chat_" + localStorage.getItem("lastFriendId") })
+                            }
+                            localStorage.setItem("lastFriendId", friend.id);
+                            localStorage.setItem("lastFriendName", friend.username);
                             loadChat(friend.id);
                         });
                         list.appendChild(li);
@@ -262,15 +271,20 @@
         }
 
         window.onload = function () {
-            const lastFriendId = localStorage.getItem("lastFriendId");
-            const lastFriendName = localStorage.getItem("lastFriendName");
-            if (lastFriendId) {
-                currentFriendId = lastFriendId;
+            // const lastFriendId = localStorage.getItem("lastFriendId");
+            // const lastFriendName = localStorage.getItem("lastFriendName");
+            // if (lastFriendId) {
+            //     currentFriendId = lastFriendId;
 
-                document.getElementById('chatWith').textContent = "Chat with " + lastFriendName;
-                socket.emit('join', { room: "chat_" + lastFriendId });
-                loadChat(lastFriendId);
+            //     document.getElementById('chatWith').textContent = "Chat with " + lastFriendName;
+            //     socket.emit('join', { room: "chat_" + lastFriendId });
+            //     loadChat(lastFriendId);
+            // }
+            if (localStorage.getItem("lastFriendId")) {
+                socket.emit('leave', { room: "chat_" + localStorage.getItem("lastFriendId") })
             }
+            localStorage.removeItem("lastFriendId");
+            localStorage.removeItem("lastFriendName");
             loadFriends();
             loadFriendRequests();
         }
@@ -301,13 +315,13 @@
             document.getElementById('typingIndicator').textContent = "";
         });
 
- 
+
         let typingTimer;
         const typingInterval = 1000;
         document.getElementById('chatMessageInput').addEventListener('input', function () {
             if (currentFriendId) {
                 console.log("Current friend ID:", currentFriendId);
-                socket.emit('typing', { room: "chat_" + currentFriendId, username:localStorage.getItem('username') });
+                socket.emit('typing', { room: "chat_" + currentFriendId, username: localStorage.getItem('username') });
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(() => {
                     socket.emit('stop_typing', { room: "chat_" + currentFriendId });

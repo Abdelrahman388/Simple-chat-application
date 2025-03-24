@@ -1,10 +1,12 @@
+# import os
 from flask import render_template, redirect, session, url_for, request, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from app import app, db, login_manager
+from app import app, db, login_manager,cipher_suite
 from sqlalchemy.orm import aliased
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from models import User, Friend, FriendRequest, Message
 from werkzeug.security import generate_password_hash, check_password_hash
+# from cryptography.fernet import Fernet
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -70,11 +72,11 @@ def login():
 def chat():
     return render_template('chat.html', username=current_user.username)
 
-@app.route('/api/protected', methods=['GET'])
-@jwt_required()
-def protected():
-    current_user_id = get_jwt_identity()
-    return jsonify(logged_in_as=current_user_id), 200
+# @app.route('/api/protected', methods=['GET'])
+# @jwt_required()
+# def protected():
+#     current_user_id = get_jwt_identity()
+#     return jsonify(logged_in_as=current_user_id), 200
 
 @app.route('/logout')
 @login_required
@@ -175,16 +177,16 @@ def delete_friend_request():
 # Messages routes
 # ---------------
 
-@app.route('/send_message', methods=['POST'])
-@login_required
-def send_message():
-    receiver = User.query.filter_by(username=request.form['receiver']).first()
-    if receiver:
-        message = Message(sender_id=current_user.id, receiver_id=receiver.id, content=request.form['message'])
-        db.session.add(message)
-        db.session.commit()
-        return jsonify({'message': 'Message sent!'})
-    return jsonify({'error': 'User not found!'}), 404
+# @app.route('/send_message', methods=['POST'])
+# @login_required
+# def send_message():
+#     receiver = User.query.filter_by(username=request.form['receiver']).first()
+#     if receiver:
+#         message = Message(sender_id=current_user.id, receiver_id=receiver.id, content=request.form['message'])
+#         db.session.add(message)
+#         db.session.commit()
+#         return jsonify({'message': 'Message sent!'})
+#     return jsonify({'error': 'User not found!'}), 404
 
 @app.route('/get_messages/<friend_id>', methods=['GET'])
 @login_required
@@ -206,7 +208,7 @@ def get_messages(friend_id):
         results.append({
             'senderId': msg.sender_id,
             'senderName': s_name,            
-            'content': msg.content,
+            'content': cipher_suite.decrypt(msg.content).decode('utf-8'),
             'timestamp': msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         })
     return jsonify(results)
